@@ -1,0 +1,53 @@
+file2db:
+  enable: true
+  defaultPath:
+    enable: true
+    cron: 0/10 * * * * *    # spring scheduled 定时器配置
+    # path: D:/work/empty/root # 扫描文件的路径
+    encoding: UTF-8 # 文件编码
+    beforeHandle:
+      enable: true    # 一轮扫描文件之前的处理，检查路径是否存在、创建成功目录、创建失败目录
+    fileSelector:
+      enable: true    # 选择需要入库的文件，不开启，则读取路径下所有文件
+      name: ^.*[.]txt$
+      notMatchHandle:
+        enable: true
+        isMoveOut: false
+        moveOutDir: ../notmatch
+        delete: false
+    rowHandle:
+      enable: true    # 文件中每一行的处理，与paths列表下path.rows对应
+      
+      handler: com.github.chencye.app.file2db.handler.RowHandler    # 扩展时，可继承默认的实现
+    successhandle:
+      enable: true    # 一个文件读取完毕后的处理
+      isBak: true    # 是否备份
+      bakDir: ./bak    # 备份路径
+      delete: true    # 删除原文件，当isBak为true时，无效
+    failedHandle:
+      enable: true    # 一个文件读取失败的处理
+      isBak: true    # 是否备份
+      bakDir: ./bak    # 备份路径
+      delete: true    # 删除原文件，当isBak为true时，无效
+    finalHandle:
+      enable: false    # 一个文件处理完毕的最后处理，如写入日志
+  paths:
+    -
+      enable: true
+      path: D:/work/empty/root # 扫描文件的路径
+      files:
+        -
+          enable: true
+          rows:
+            -
+              enable: true
+    -
+      enable: false
+      path: D:/work/empty/root # 扫描文件的路径
+
+logging:
+  config: config/logback.xml
+
+spring:
+  taskExecutor: # spring定时器的并发线程池
+    poolSize: 3
