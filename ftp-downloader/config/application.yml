@@ -1,0 +1,60 @@
+ftp:
+  enable: true    # 总开关
+  defaultConfig:    # 默认配置，当hosts的各项中没有对应配置时，取这里的值
+    enable: true    # 开关，是否进行FTP操作
+    # ip: 192.168.1.103    # 远程机器IP
+    username: chencye
+    password: chencye
+    # remoteDir: /home/chencye/file/
+    # localDir: D:/empty/file/
+    # type: download    # 操作类型，upload上传、download下载
+    beforeHandler:    # 在定时器启动，准备执行FTP操作之前的处理，如创建本地文件夹
+      enable: true
+      isCreateLocalDir: true    # 当本地文件夹存在时，创建出来
+    fileSelect:
+      enable: true    # 开关，是否对文件进行条件选择。不启用时，将操作所有文件
+      fileNameRegex: 'test_[0-9]{14}_.*[.]txt'    # 文件名规则
+      enableGetFileInfo: true    # 是否需要获取文件详细信息
+      enableCompareTime: false    # 是否比较文件的最后修改时间
+      millisecond: 300000    # 文件最后修改时间与当前时间之差（毫秒），5分钟
+      enableLimitCount: true    # 是否限制一次加载文件名的数量
+      maxFileCount: 2000    # 一次最多加载多少个文件名
+      enableLimitBatchCount: true    # 是否限制加载次数
+      maxBatchCount: 5    # 最多加载5次
+    preHandler: # 单个文件下载之前的处理，如
+      enable: true
+      enableCheckExist: false
+      enableRemoteSuffix: false
+      remoteSuffix: _downloading # 下载中的远程文件名，添加后缀
+      enableLocalSuffix: true
+      localSuffix: _downloading # 下载中的文件名，添加后缀
+    successHandler: # 单个文件操作完毕后的处理
+      enable: true
+      enableBak: false # 操作完毕后，移动到备份目录
+      bakDir: bak/ # 备份目录，不以/开头，则为相对路径
+      enableDelete: false # 操作完毕后，是否删除文件，当enableBak为true时，无效
+    failedHandler: # 单个文件操作失败后的处理
+      enable: false
+      enableBak: false # 是否将不完整的文件移动到某个目录
+      bakDir: failed/ # 备份目录
+      enableDelete: false # 是否删除不完整的文件
+    finalHandler: # 所有文件操作完毕后的处理
+      enable: false
+    cron: 0/10 * * * * * # spring scheduled 定时器配置
+  hosts: # 单台服务器而言为单线程
+  - enable: false
+    ip: 192.168.1.103
+    remoteDir: /home/chencye/file/upload/
+    localDir: D:/empty/file/upload/
+    type: upload
+  - ip: 192.168.1.103
+    remoteDir: /home/chencye/file/download/
+    localDir: D:/empty/file/download/
+    type: download
+
+logging:
+  config: config/logback.xml
+  
+spring:
+  taskExecutor: # spring定时器的并发线程池
+    poolSize: 3
