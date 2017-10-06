@@ -1,7 +1,11 @@
 package com.github.chencye.app.ftp.selector;
 
-/**
- * Created by chencye on 2017/10/6.
- */
+import com.github.chencye.app.ftp.conf.HostConfig;
+import com.github.chencye.app.ftp.selector.impl.FTPDownloadFileSelector;
+
 public class SelectorFactory {
+
+    public static FTPFileSelector getDownloadFileSelector(HostConfig hostConfig) {
+        return new FTPDownloadFileSelector(hostConfig);
+    }
 }

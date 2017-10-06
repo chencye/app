@@ -1,60 +1,78 @@
-ftp:
+ftp-downloader:
   enable: true    # 总开关
   defaultConfig:    # 默认配置，当hosts的各项中没有对应配置时，取这里的值
     enable: true    # 开关，是否进行FTP操作
+    cron: 0/5 * * * * *    # spring scheduled 定时器配置
     # ip: 192.168.1.103    # 远程机器IP
     username: chencye
     password: chencye
-    # remoteDir: /home/chencye/file/
-    # localDir: D:/empty/file/
-    # type: download    # 操作类型，upload上传、download下载
-    beforeHandler:    # 在定时器启动，准备执行FTP操作之前的处理，如创建本地文件夹
-      enable: true
-      isCreateLocalDir: true    # 当本地文件夹存在时，创建出来
+    # remoteDir: /home/chencye/file
+    localDir: D:/temp/ftp-downloader/file
+    beforeHandler:
+      enable: true    # 在定时器启动，准备执行FTP操作之前的处理，如创建本地文件夹
+      # enableCreateRemoteDir: true    # 是否创建远程文件夹，如远程的备份文件夹
+      enableCreateLocalDir: true    # 当本地文件夹存在时，是否创建
     fileSelect:
       enable: true    # 开关，是否对文件进行条件选择。不启用时，将操作所有文件
+      maxCount: 2000    # 一次最多选择多少个文件
       fileNameRegex: 'test_[0-9]{14}_.*[.]txt'    # 文件名规则
-      enableGetFileInfo: true    # 是否需要获取文件详细信息
-      enableCompareTime: false    # 是否比较文件的最后修改时间
-      millisecond: 300000    # 文件最后修改时间与当前时间之差（毫秒），5分钟
-      enableLimitCount: true    # 是否限制一次加载文件名的数量
-      maxFileCount: 2000    # 一次最多加载多少个文件名
-      enableLimitBatchCount: true    # 是否限制加载次数
-      maxBatchCount: 5    # 最多加载5次
-    preHandler: # 单个文件下载之前的处理，如
-      enable: true
-      enableCheckExist: false
-      enableRemoteSuffix: false
-      remoteSuffix: _downloading # 下载中的远程文件名，添加后缀
-      enableLocalSuffix: true
-      localSuffix: _downloading # 下载中的文件名，添加后缀
-    successHandler: # 单个文件操作完毕后的处理
-      enable: true
-      enableBak: false # 操作完毕后，移动到备份目录
-      bakDir: bak/ # 备份目录，不以/开头，则为相对路径
-      enableDelete: false # 操作完毕后，是否删除文件，当enableBak为true时，无效
-    failedHandler: # 单个文件操作失败后的处理
-      enable: false
-      enableBak: false # 是否将不完整的文件移动到某个目录
-      bakDir: failed/ # 备份目录
-      enableDelete: false # 是否删除不完整的文件
-    finalHandler: # 所有文件操作完毕后的处理
-      enable: false
-    cron: 0/10 * * * * * # spring scheduled 定时器配置
+      timeCompare:
+        enable: true    # 是否进行文件最后修改时间的比较
+        isLatest: false    # 是否取最近的
+        millisecond: 300000    # 距当前的时间差（毫秒），用于比较，5分钟
+      sizeCompare:
+        enable: false    # 是否进行文件大小的比较
+        isSmallest: true    # 比较后，是否取比较小的文件
+        size: 1048576    # 文件大小临界值，单位B，1K=1024B，1M=1048576B
+      loop:
+        enable: true    # 当前选择所有文件下载完毕后，是否再次循环去下载
+        isLimitLoopCount: true    # 是否限制循环次数
+        maxLoop: 5     # 最大循环次数
+    preHandler:
+      enable: true    # 开关，在进行单个文件FTP操作之前的处理，如添加后缀
+      enableCheckExist: true    # 是否检查本地中是否已存在文件
+      deleteWhenExist: true    # 当本地文件已存在时，是否本地已存在的文件，若不删除，则跳过
+      enableRemoteSuffix: false    # 下载过程中是否先给远程机器上的文件添加后缀，防止下载过程中，远程文件被操作
+      remoteSuffix: _downloading    # 添加的远程文件名后缀
+      enableLocalSuffix: true    # 下载过程中，是否给保存到本地的文件添加后缀，防止下载过程中，未下载完毕的本地文件被操作
+      localSuffix: _downloading    # 添加的本地文件名后缀
+    remoteHandler:
+      enable: true    # 单个文件操作完毕后，对远程文件的后续操作
+      enableFixedFilename: true   # 修正文件名，前面preHandler添加的后缀
+      enableBak: false    # 操作完毕后，移动到备份目录 ，未实现
+      bakDir: bak    # 备份目录，可为相对路径，也可为绝对路径
+      enableDelete: false    # 操作完毕后，是否删除远程文件，当enableBak为true时，无效
+    successHandler:
+      enable: true    # 单个文件操作成功后的操作，如备份或删除本地文件，重命名本地文件
+      enableFixedFilename: true   # 修正文件名，前面preHandler添加的后缀
+      enableBak: false    # 操作完毕后，移动到备份目录
+      bakDir: ./bak    # 备份目录，可为相对路径，也可为绝对路径
+      enableDelete: false    # 操作完毕后，是否删除文件，当enableBak为true时，无效
+    failedHandler:
+      enable: true    # 开关，单个文件操作失败后的处理
+      enableFixedFilename: false   # 修正文件名，前面preHandler添加的后缀
+      enableBak: true    # 是否将不完整的文件移动到某个目录
+      bakDir: ../failed    # 备份目录
+      enableDelete: false    # 是否删除不完整的文件
+    finalHandler:
+      enable: true    # 一次定时任务完成后的处理
+      enableCloseFTP: true    # 关闭FTP连接
   hosts: # 单台服务器而言为单线程
-  - enable: false
+  -
     ip: 192.168.1.103
-    remoteDir: /home/chencye/file/upload/
-    localDir: D:/empty/file/upload/
-    type: upload
-  - ip: 192.168.1.103
-    remoteDir: /home/chencye/file/download/
-    localDir: D:/empty/file/download/
-    type: download
+    remoteDir: /home/chencye/ftp/file/ftp-downloader-1
+    localDir: D:/temp/ftp-downloader/file-1
+    fileSelect:
+      fileNameRegex: test_1.*[.]txt
+  -
+    enable: false
+    ip: 192.168.1.103
+    remoteDir: /home/chencye/ftp/file/ftp-downloader-2
+    localDir: D:/temp/ftp-downloader/file-2
 
 logging:
   config: config/logback.xml
-  
+
 spring:
-  taskExecutor: # spring定时器的并发线程池
-    poolSize: 3
+  taskExecutor:
+    poolSize: 3    # spring定时器的并发线程池

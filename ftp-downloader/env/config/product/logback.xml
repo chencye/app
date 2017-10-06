@@ -9,19 +9,6 @@
     <property name="LOG_HOME" value="./logs"/>
     <property name="appName" value="ftp"/>
 
-    <!-- 设置上下文名称 -->
-    <!-- 每个logger都关联到logger上下文，默认上下文名称为“default”。但可以使用<contextName>设置成其他名字，用于区分不同应用程序的记录。一旦设置，不能修改。 -->
-    <contextName>${appName}</contextName>
-
-    <!-- <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" /> -->
-
-    <!-- appender：负责写日志的组件 -->
-    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{50} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
     <appender name="rollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <File>${LOG_HOME}/${appName}.log</File>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -40,13 +27,11 @@
     <!-- name: 用来指定受此loger约束的某一个包或者具体的某一个类。 -->
     <!-- level：用来设置打印级别，大小写无关：TRACE, DEBUG, INFO, WARN, ERROR, ALL 和 OFF，还有一个特俗值INHERITED或者同义词NULL，代表强制执行上级的级别。如果未设置此属性，那么当前loger将会继承上级的级别。 -->
     <!-- addtivity：是否向上级loger传递打印信息。默认是true。 -->
-
     <logger name="org.springframework" level="warn"/>
     <logger name="ch.qos.logback" level="WARN" addtivity="false"/>
 
     <root level="debug">
-        <appender-ref ref="console"/>
-        <!--<appender-ref ref="rollingFile" />-->
+        <appender-ref ref="rollingFile"/>
     </root>
 
 </configuration>
