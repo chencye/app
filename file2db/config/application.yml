@@ -1,53 +1,100 @@
 file2db:
-  enable: true
-  defaultPath:
+  enable: true    # 总开关
+  defaultConfig:
     enable: true
-    cron: 0/10 * * * * *    # spring scheduled 定时器配置
-    # path: D:/work/empty/root # 扫描文件的路径
-    encoding: UTF-8 # 文件编码
-    beforeHandle:
+    name: path1    # 名称，用于日志输出，以便区分
+    enableCron: false    # 是否启用定时
+    cron: 0/5 * * * * *    # spring scheduled 定时器配置
+    # path: D:/temp/file/ # 扫描文件的路径
+    encoding: UTF-8    # 文件编码
+    initHandler:
       enable: true    # 一轮扫描文件之前的处理，检查路径是否存在、创建成功目录、创建失败目录
-    fileSelector:
-      enable: true    # 选择需要入库的文件，不开启，则读取路径下所有文件
-      name: ^.*[.]txt$
-      notMatchHandle:
-        enable: true
-        isMoveOut: false
-        moveOutDir: ../notmatch
-        delete: false
-    rowHandle:
+      enableCreateDir: true
+    fileScanner:
+      enable: true    # 文件扫描，为false时，取所有文件
+      maxCount: 2000    # 一次最多加载的文件数量
+      nameFilter:
+        enable: true    # 文件名筛选
+        regex: ^.*[.]txt$
+      lastmodFilter:
+        enable: false    # 文件最后修改时间的筛选
+        isLatest: false    # 是否取最近的
+        millisecond: 300000    # 距当前的时间差（毫秒），用于比较，5分钟
+      sizeFilter:
+        enable: false    # 文件大小的筛选
+        isSmallest: true    # 比较后，是否取比较小的文件
+        size: 1048576    # 文件大小临界值，单位B，1K=1024B，1M=1048576B
+      dbFilter:
+        enable: false    # 检查是否已存在入库记录
+        sql: select count(*) from file2db_log where file_name = ? and file_lastmod = ? and file_size = ?    # 入库记录查询语句
+        sqlColumns: file_name,file_lastmod,file_size    # sql语句的取值
+      # otherFilters:    # 其它筛选器
+      notMatchHandler:
+        enable: true    # 不匹配文件的处理
+        isMoveOut: false    # 是否移出当前文件夹
+        moveOutDir: ../notmatch    # 移出到此文件夹
+        delete: false    # 是否删除，当isMoveOut=true时，无效
+    preHandler:
+      # handler:
+      enable: true    # 开关，在读取文件之前的处理，如添加后缀
+      enableAddMark: true    # 是否添加正在读取的标记
+      mark: _reading    # 添加此标记到文件名后面
+      enableLog: true    # 读取之前是否记录日志，用于获取日志ID，以供行入库时使用
+      sql: insert into file2db_log(file_name, file_lastmod, file_size, begintime) values (?,?,?,CURRENT_TIMESTAMP);
+      sqlColumns: file_name,file_lastmod,file_size    # 日志取值，上面语句三个问号的取值
+    rowHandler:
+      # handler: com.github.chencye.app.file2db.handler.RowHandler    # 扩展时，可继承默认的实现
       enable: true    # 文件中每一行的处理，与paths列表下path.rows对应
-
-      handler: com.github.chencye.app.file2db.handler.RowHandler    # 扩展时，可继承默认的实现
-    successhandle:
+      name: row_config_1    # 配置别名，用于统计当前匹配的行数
+      rowRegex: ^.*$    # 行匹配并捕获入库内容
+      rowExts: file_id     # 扩展行捕获的内容数组，以逗号间隔，用于入库，在入库语句中，依次在最后面
+      dbChecker:
+        enable: false    # 检查库表中是否已存在
+        sql: select count(*) from file2db_row where name = ? and num = ?    # 查询语句
+        indexs: 0,1    # 行匹配所捕获数组中的下标，用于上面语句的查询条件取值
+      # otherCheckers:    # 其它行检查器
+      row2dbHandler:
+        enable: true
+        sql: insert into file2db_row (name, num, opdate, file_id) values(?,to_numer(?),to_date(?,'yyyymmddhh24miss'),?)    # 入库语句，扩展内容放到后面
+        # indexs: 0,1,2,3    # 捕获到的数据组中，需要入库内容的下标，当为空时，入库所有
+      failedHandler:
+        enable: true
+        toFileHandler:
+          enable: true    # 是否保存失败记录到文件
+          path: ./failed
+          filenameSuffix: _fail    # 失败文件名后缀。失败文件名=原文件名+此配置的后缀
+          onlyRowContent: false    # 只输出行内容
+          saveLineNumber: true    # 输出失败行的行号，格式[line:2,reason:mismatch,content:]
+          saveReason: true    # 输出失败原因
+        toDbHandler:
+          enable: false
+          sql: insert into file2db_row_failed (logid, linenumber, reason, content) values (?,?,?,?)
+          sqlColumns: logid,linenumber,reason,content
+    logHandler:
+      enable: true    # 是否写文件读取日志，可记录：文件名、文件最后修改时间、文件大小、总行数、成功行数、入库时间、是否入库成功
+      sql: update file2db_log set total = ?, success = ? where logid = ?
+      sqlColumns: totalRow,successRow
+    readOverHandler:
       enable: true    # 一个文件读取完毕后的处理
       isBak: true    # 是否备份
       bakDir: ./bak    # 备份路径
       delete: true    # 删除原文件，当isBak为true时，无效
-    failedHandle:
-      enable: true    # 一个文件读取失败的处理
-      isBak: true    # 是否备份
-      bakDir: ./bak    # 备份路径
-      delete: true    # 删除原文件，当isBak为true时，无效
-    finalHandle:
-      enable: false    # 一个文件处理完毕的最后处理，如写入日志
+    finalHandler:
+      enable: false    # 一次定时任务完毕后的处理
   paths:
     -
       enable: true
-      path: D:/work/empty/root # 扫描文件的路径
-      files:
+      path: D:/temp/ftp-downloader/file-1    # 扫描文件的路径
+      rows:
         -
           enable: true
-          rows:
-            -
-              enable: true
     -
       enable: false
-      path: D:/work/empty/root # 扫描文件的路径
+      path: D:/temp/ftp-downloader/file-2    # 扫描文件的路径
 
 logging:
   config: config/logback.xml
 
 spring:
-  taskExecutor: # spring定时器的并发线程池
-    poolSize: 3
+  taskExecutor:
+    poolSize: 3     # spring定时器的并发线程池

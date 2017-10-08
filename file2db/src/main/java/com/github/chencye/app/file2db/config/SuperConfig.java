@@ -1,6 +1,6 @@
 package com.github.chencye.app.file2db.config;
 
-public abstract class FileHandleConf {
+public abstract class SuperConfig {
     private Boolean enable;
 
     public Boolean getEnable() {
@@ -9,5 +9,12 @@ public abstract class FileHandleConf {
 
     public void setEnable(Boolean enable) {
         this.enable = enable;
+    }
+
+    @Override
+    public String toString() {
+        return "SuperConfig{" +
+                "enable=" + enable +
+                '}';
     }
 }
